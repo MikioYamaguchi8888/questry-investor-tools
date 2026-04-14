@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ファンドダッシュボード — Questry</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      margin: 0;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin: 0 0 32px;
+    }
+
+    .fund-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(560px, 1fr));
+      gap: 28px;
+    }
+
+    .fund-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    .fund-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 6px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .status-募集中   { background: #fff8d4; color: #7a6010; }
+    .status-募集完了 { background: #d4f5e2; color: #1a7a45; }
+    .status-運用中   { background: #dce8ff; color: #1a3a7a; }
+    .status-終了     { background: #ebebeb; color: #666; }
+
+    /* サマリーカード */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      flex: 1;
+      background: #f5f6fa;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+
+    .summary-card .label {
+      font-size: 0.72rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .summary-card .unit {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #666;
+      margin-left: 2px;
+    }
+
+    /* 調達進捗 */
+    .progress-section {
+      margin-bottom: 24px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    .progress-track {
+      background: #eee;
+      border-radius: 99px;
+      height: 14px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      transition: width 0.8s ease;
+    }
+
+    .progress-bar.full {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+    }
+
+    .progress-pct {
+      text-align: right;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #3b82f6;
+      margin-top: 4px;
+    }
+
+    .progress-pct.full { color: #16a34a; }
+
+    /* 円グラフ */
+    .chart-section label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .chart-wrap {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .chart-wrap canvas {
+      max-width: 180px;
+      max-height: 180px;
+    }
+
+    .legend {
+      flex: 1;
+      font-size: 0.8rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-name { flex: 1; color: #444; }
+    .legend-amount { font-weight: 600; white-space: nowrap; color: #1a1a2e; }
+  </style>
+</head>
+<body>
+
+  <h1>ファンドダッシュボード</h1>
+  <p class="subtitle">Questry — TKスキーム 案件管理</p>
+
+  <div class="fund-grid" id="fund-grid"></div>
+
+  <script>
+    const FUNDS = [
+      {
+        "案件名": "アニメ『蒼穹のクロニクル』製作TKファンド",
+        "ターゲット金額（万円）": 30000,
+        "現在調達額（万円）": 20000,
+        "利回り目標（%）": 8.5,
+        "投資期間（月）": 24,
+        "ステータス": "募集中",
+        "投資家リスト": [
+          {"名前": "株式会社フロンティアキャピタル", "出資額（万円）": 15000},
+          {"名前": "田中誠一", "出資額（万円）": 5000}
+        ]
+      },
+      {
+        "案件名": "実写映画『北の零年 リボーン』製作TKファンド",
+        "ターゲット金額（万円）": 15000,
+        "現在調達額（万円）": 15000,
+        "利回り目標（%）": 7.0,
+        "投資期間（月）": 18,
+        "ステータス": "募集完了",
+        "投資家リスト": [
+          {"名前": "合同会社クリエイトベンチャーズ", "出資額（万円）": 10000},
+          {"名前": "山田太郎", "出資額（万円）": 3000},
+          {"名前": "田中誠一", "出資額（万円）": 2000}
+        ]
+      }
+    ];
+
+    const PALETTE = [
+      "#6366f1","#3b82f6","#22c55e","#f59e0b","#ec4899","#14b8a6","#f97316","#8b5cf6"
+    ];
+
+    function fmt(n) { return Number(n).toLocaleString(); }
+
+    function buildCard(fund, index) {
+      const target  = fund["ターゲット金額（万円）"];
+      const current = fund["現在調達額（万円）"];
+      const pct     = Math.min(Math.round(current / target * 100), 100);
+      const isFull  = pct >= 100;
+      const canvasId = `chart-${index}`;
+      const status   = fund["ステータス"];
+
+      const card = document.createElement("div");
+      card.className = "fund-card";
+      card.innerHTML = `
+        <div class="fund-name">${fund["案件名"]}</div>
+        <span class="status-badge status-${status}">${status}</span>
+
+        <div class="summary-row">
+          <div class="summary-card">
+            <div class="label">ターゲット金額</div>
+            <div class="value">${fmt(target)}<span class="unit">万円</span></div>
+          </div>
+          <div class="summary-card">
+            <div class="label">現在調達額</div>
+            <div class="value">${fmt(current)}<span class="unit">万円</span></div>
+          </div>
+          <div class="summary-card">
+            <div class="label">利回り目標（IRR）</div>
+            <div class="value">${fund["利回り目標（%）"]}<span class="unit">%</span></div>
+          </div>
+          <div class="summary-card">
+            <div class="label">投資期間</div>
+            <div class="value">${fund["投資期間（月）"]}<span class="unit">ヶ月</span></div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <div class="progress-header">
+            <span>調達進捗</span>
+            <span>${fmt(current)} / ${fmt(target)} 万円</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-bar ${isFull ? "full" : ""}" style="width: ${pct}%"></div>
+          </div>
+          <div class="progress-pct ${isFull ? "full" : ""}">${pct}%</div>
+        </div>
+
+        <div class="chart-section">
+          <label>投資家別 出資額</label>
+          <div class="chart-wrap">
+            <canvas id="${canvasId}"></canvas>
+            <div class="legend" id="legend-${index}"></div>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    function buildChart(fund, index) {
+      const investors = fund["投資家リスト"];
+      const labels  = investors.map(i => i["名前"]);
+      const amounts = investors.map(i => i["出資額（万円）"]);
+      const colors  = investors.map((_, i) => PALETTE[i % PALETTE.length]);
+
+      new Chart(document.getElementById(`chart-${index}`), {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{ data: amounts, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }]
+        },
+        options: {
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed)} 万円`
+            }
+          }},
+          cutout: "60%",
+          animation: { animateScale: true }
+        }
+      });
+
+      const legend = document.getElementById(`legend-${index}`);
+      investors.forEach((inv, i) => {
+        const item = document.createElement("div");
+        item.className = "legend-item";
+        item.innerHTML = `
+          <div class="legend-dot" style="background:${colors[i]}"></div>
+          <span class="legend-name">${inv["名前"]}</span>
+          <span class="legend-amount">${fmt(inv["出資額（万円）"])}万円</span>
+        `;
+        legend.appendChild(item);
+      });
+    }
+
+    const grid = document.getElementById("fund-grid");
+    FUNDS.forEach((fund, i) => {
+      grid.appendChild(buildCard(fund, i));
+    });
+
+    // Chart.jsはDOM挿入後に描画
+    FUNDS.forEach((fund, i) => buildChart(fund, i));
+  </script>
+
+</body>
+</html>

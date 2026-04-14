@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TK IRRシミュレーター — Questry</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      min-height: 100vh;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 28px;
+    }
+
+    /* レイアウト */
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* パネル */
+    .panel {
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+
+    .panel-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 18px;
+    }
+
+    /* フォーム */
+    .form-group { margin-bottom: 20px; }
+
+    .form-group label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    .form-group label span {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .form-group input[type="range"] {
+      width: 100%;
+      accent-color: #3949ab;
+      cursor: pointer;
+    }
+
+    .form-group input[type="number"] {
+      width: 100%;
+      background: #f5f6fa;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #333;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input[type="number"]:focus { border-color: #3949ab; }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-row input[type="number"] {
+      width: 84px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* メトリクス */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .metric {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      border-top: 3px solid #e0e0e0;
+    }
+
+    .metric.primary  { border-top-color: #3949ab; }
+    .metric.positive { border-top-color: #2e7d32; }
+    .metric.neutral  { border-top-color: #888; }
+
+    .metric .label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .metric .value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: #1a1a2e;
+    }
+
+    .metric.primary  .value { color: #3949ab; }
+    .metric.positive .value { color: #2e7d32; }
+
+    .metric .sub { font-size: 0.75rem; color: #888; }
+
+    /* グラフ */
+    .chart-panel { margin-bottom: 20px; }
+    .chart-wrap  { position: relative; height: 260px; }
+
+    /* テーブル */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    thead tr {
+      background: #1a1a2e;
+      color: #fff;
+    }
+
+    th {
+      padding: 11px 14px;
+      text-align: right;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    th:first-child { text-align: left; }
+
+    td {
+      padding: 10px 14px;
+      text-align: right;
+      border-bottom: 1px solid #f0f0f0;
+      font-variant-numeric: tabular-nums;
+      color: #333;
+    }
+
+    td:first-child { text-align: left; color: #888; }
+
+    tr:last-child td {
+      border-bottom: none;
+      font-weight: 700;
+      color: #1a1a2e;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    tr:hover td { background: #fafbff; }
+
+    .positive-val { color: #2e7d32; }
+    .negative-val { color: #c62828; }
+
+    /* 区切り */
+    .divider {
+      border: none;
+      border-top: 1px solid #f0f0f0;
+      margin: 20px 0;
+    }
+
+    .calc-btn {
+      width: 100%;
+      padding: 11px;
+      background: #1a1a2e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .calc-btn:hover { opacity: 0.82; }
+
+    @media (max-width: 860px) {
+      body { padding: 20px; }
+      .layout { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>IRR シミュレーター</h1>
+  <p class="subtitle">Questry — TKスキーム 匿名組合出資の期待リターンをシミュレーションします</p>
+
+  <div class="layout">
+
+    <!-- 入力パネル -->
+    <div class="panel">
+      <div class="panel-title">パラメーター設定</div>
+
+      <div class="form-group">
+        <label>出資額 <span id="lbl-amount">5,000 万円</span></label>
+        <div class="slider-row">
+          <input type="range" id="s-amount" min="500" max="100000" step="500" value="5000"
+                 oninput="syncInput('amount', this.value)">
+          <input type="number" id="n-amount" value="5000" min="500" max="100000" step="500"
+                 oninput="syncSlider('amount', this.value)">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>想定配当率 <span id="lbl-dividend">8.0 %/年</span></label>
+        <div class="slider-row">
+          <input type="range" id="s-dividend" min="1" max="30" step="0.5" value="8"
+                 oninput="syncInput('dividend', this.value)">
+          <input type="number" id="n-dividend" value="8" min="1" max="30" step="0.5"
+                 oninput="syncSlider('dividend', this.value)">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>投資期間 <span id="lbl-term">24 ヶ月</span></label>
+        <div class="slider-row">
+          <input type="range" id="s-term" min="6" max="60" step="6" value="24"
+                 oninput="syncInput('term', this.value)">
+          <input type="number" id="n-term" value="24" min="6" max="60" step="6"
+                 oninput="syncSlider('term', this.value)">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>元本回収率 <span id="lbl-recovery">100 %</span></label>
+        <div class="slider-row">
+          <input type="range" id="s-recovery" min="50" max="130" step="5" value="100"
+                 oninput="syncInput('recovery', this.value)">
+          <input type="number" id="n-recovery" value="100" min="50" max="130" step="5"
+                 oninput="syncSlider('recovery', this.value)">
+        </div>
+      </div>
+
+      <hr class="divider">
+      <button class="calc-btn" onclick="calculate()">シミュレーション実行</button>
+    </div>
+
+    <!-- 出力パネル -->
+    <div>
+      <div class="metrics">
+        <div class="metric primary">
+          <div class="label">IRR（年率）</div>
+          <div class="value" id="out-irr">—</div>
+          <div class="sub">内部収益率</div>
+        </div>
+        <div class="metric positive">
+          <div class="label">総リターン額</div>
+          <div class="value" id="out-total">—</div>
+          <div class="sub" id="out-total-sub">出資額比</div>
+        </div>
+        <div class="metric neutral">
+          <div class="label">MOIC</div>
+          <div class="value" id="out-moic">—</div>
+          <div class="sub">投資倍率</div>
+        </div>
+      </div>
+
+      <div class="panel chart-panel">
+        <div class="panel-title">年別 累積キャッシュフロー</div>
+        <div class="chart-wrap">
+          <canvas id="cf-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">年別 キャッシュフロー表</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>期</th>
+                <th>配当収入</th>
+                <th>元本回収</th>
+                <th>CF合計</th>
+                <th>累積CF</th>
+                <th>累積CF（出資比）</th>
+              </tr>
+            </thead>
+            <tbody id="cf-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let chartInstance = null;
+
+    function syncInput(key, val) {
+      document.getElementById(`n-${key}`).value = val;
+      updateLabel(key, val);
+    }
+
+    function syncSlider(key, val) {
+      document.getElementById(`s-${key}`).value = val;
+      updateLabel(key, val);
+    }
+
+    function updateLabel(key, val) {
+      const map = {
+        amount:   v => `${Number(v).toLocaleString()} 万円`,
+        dividend: v => `${v} %/年`,
+        term:     v => `${v} ヶ月`,
+        recovery: v => `${v} %`,
+      };
+      document.getElementById(`lbl-${key}`).textContent = map[key](val);
+    }
+
+    function calcIRR(cashflows) {
+      const npv = r => cashflows.reduce((s, cf, t) => s + cf / Math.pow(1 + r, t), 0);
+      let lo = -0.9999, hi = 10.0;
+      for (let i = 0; i < 200; i++) {
+        const mid = (lo + hi) / 2;
+        if (npv(mid) > 0) lo = mid; else hi = mid;
+        if (hi - lo < 1e-10) break;
+      }
+      return (lo + hi) / 2;
+    }
+
+    function calculate() {
+      const amount    = Number(document.getElementById("n-amount").value);
+      const divRate   = Number(document.getElementById("n-dividend").value) / 100;
+      const termMo    = Number(document.getElementById("n-term").value);
+      const recovery  = Number(document.getElementById("n-recovery").value) / 100;
+
+      const monthlyDiv   = amount * divRate / 12;
+      const principalRec = amount * recovery;
+
+      const monthlyCF = [-amount];
+      for (let m = 1; m <= termMo; m++) {
+        monthlyCF.push(monthlyDiv + (m === termMo ? principalRec : 0));
+      }
+
+      const annualIRR   = Math.pow(1 + calcIRR(monthlyCF), 12) - 1;
+      const totalReturn = monthlyDiv * termMo + principalRec - amount;
+      const moic        = (monthlyDiv * termMo + principalRec) / amount;
+
+      document.getElementById("out-irr").textContent   = (annualIRR * 100).toFixed(2) + "%";
+      document.getElementById("out-total").textContent =
+        (totalReturn >= 0 ? "+" : "") + fmt(Math.round(totalReturn)) + "万";
+      document.getElementById("out-total-sub").textContent =
+        `出資額比 ${totalReturn >= 0 ? "+" : ""}${(totalReturn / amount * 100).toFixed(1)}%`;
+      document.getElementById("out-moic").textContent  = moic.toFixed(2) + "x";
+
+      const years = Math.ceil(termMo / 12);
+      const rows  = [];
+      let cumCF   = -amount;
+
+      for (let y = 1; y <= years; y++) {
+        const startM = (y - 1) * 12 + 1;
+        const endM   = Math.min(y * 12, termMo);
+        const divInc = monthlyDiv * (endM - startM + 1);
+        const princ  = y === years ? principalRec : 0;
+        const cfSum  = divInc + princ;
+        cumCF += cfSum;
+        rows.push({
+          year: `第${y}期（${startM}〜${endM}ヶ月）`,
+          div: divInc, princ, cfSum, cumCF,
+          cumPct: cumCF / amount * 100,
+        });
+      }
+
+      const tbody = document.getElementById("cf-table");
+      tbody.innerHTML = "";
+      let totalDiv = 0, totalPrinc = 0, totalCF = 0;
+
+      rows.forEach(r => {
+        totalDiv   += r.div;
+        totalPrinc += r.princ;
+        totalCF    += r.cfSum;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.year}</td>
+          <td class="positive-val">+${fmt(Math.round(r.div))}</td>
+          <td>${r.princ > 0 ? `<span class="positive-val">+${fmt(Math.round(r.princ))}</span>` : "—"}</td>
+          <td class="${r.cfSum >= 0 ? "positive-val" : "negative-val"}">${r.cfSum >= 0 ? "+" : ""}${fmt(Math.round(r.cfSum))}</td>
+          <td class="${r.cumCF >= 0 ? "positive-val" : "negative-val"}">${r.cumCF >= 0 ? "+" : ""}${fmt(Math.round(r.cumCF))}</td>
+          <td class="${r.cumPct >= 0 ? "positive-val" : "negative-val"}">${r.cumPct >= 0 ? "+" : ""}${r.cumPct.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const tfoot = document.createElement("tr");
+      tfoot.innerHTML = `
+        <td>合計</td>
+        <td>+${fmt(Math.round(totalDiv))}</td>
+        <td>+${fmt(Math.round(totalPrinc))}</td>
+        <td class="${totalCF - amount >= 0 ? "positive-val" : "negative-val"}">${totalCF >= 0 ? "+" : ""}${fmt(Math.round(totalCF))}</td>
+        <td>—</td><td>—</td>
+      `;
+      tbody.appendChild(tfoot);
+
+      drawChart(rows);
+    }
+
+    function fmt(n) { return Number(n).toLocaleString(); }
+
+    function drawChart(rows) {
+      const labels  = rows.map(r => r.year.match(/第\d+期/)[0]);
+      const barData = rows.map(r => Math.round(r.cfSum));
+      const cumData = rows.map(r => Math.round(r.cumCF));
+
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(document.getElementById("cf-chart"), {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: "bar",
+              label: "年間CF（万円）",
+              data: barData,
+              backgroundColor: barData.map(v => v >= 0 ? "rgba(46,125,50,0.5)" : "rgba(198,40,40,0.5)"),
+              borderColor:     barData.map(v => v >= 0 ? "#2e7d32" : "#c62828"),
+              borderWidth: 1,
+              borderRadius: 4,
+              yAxisID: "y",
+            },
+            {
+              type: "line",
+              label: "累積CF（万円）",
+              data: cumData,
+              borderColor: "#3949ab",
+              backgroundColor: "rgba(57,73,171,0.08)",
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: "#3949ab",
+              pointRadius: 5,
+              yAxisID: "y",
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#888", font: { size: 12 } } },
+            tooltip: {
+              callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} 万円` }
+            }
+          },
+          scales: {
+            x: { ticks: { color: "#888" }, grid: { color: "#f0f0f0" } },
+            y: {
+              ticks: { color: "#888", callback: v => v.toLocaleString() + "万" },
+              grid: { color: "#f0f0f0" }
+            }
+          }
+        }
+      });
+    }
+
+    calculate();
+  </script>
+
+</body>
+</html>

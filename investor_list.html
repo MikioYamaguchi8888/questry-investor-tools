@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投資家一覧 — Questry</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      margin: 0;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .summary {
+      display: flex;
+      gap: 16px;
+    }
+
+    .summary-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      min-width: 140px;
+    }
+
+    .summary-card .label {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    /* ボタン */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-edit    { background: #e8eaf6; color: #3949ab; padding: 4px 10px; font-size: 0.78rem; }
+    .btn-delete  { background: #fdecea; color: #c0392b; padding: 4px 10px; font-size: 0.78rem; }
+
+    /* テーブル */
+    .table-wrap {
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: #1a1a2e;
+      color: #fff;
+    }
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 11px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+
+    .amount {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .badge-approved { background: #d4f5e2; color: #1a7a45; }
+    .badge-pending  { background: #fff8d4; color: #7a6010; }
+    .badge-declined { background: #ebebeb; color: #666; }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      background: #e8eaf6;
+      color: #3949ab;
+    }
+
+    .actions { display: flex; gap: 6px; }
+
+    /* モーダル */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 32px;
+      width: 480px;
+      max-width: 95vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+
+    .modal h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 24px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    .form-group label .required {
+      color: #e53e3e;
+      margin-left: 3px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: #333;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #3949ab;
+    }
+
+    .form-group input.error,
+    .form-group select.error {
+      border-color: #e53e3e;
+    }
+
+    .error-msg {
+      font-size: 0.75rem;
+      color: #e53e3e;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .error-msg.show { display: block; }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .btn-cancel {
+      background: #f5f6fa;
+      color: #555;
+      border: 1.5px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>投資家一覧</h1>
+  <p class="subtitle">Questry — コンテンツファイナンス投資家管理</p>
+
+  <div class="toolbar">
+    <div class="summary">
+      <div class="summary-card">
+        <div class="label">総投資家数</div>
+        <div class="value" id="total-count">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">承認済み</div>
+        <div class="value" id="approved-count">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">承認済み 出資可能額合計</div>
+        <div class="value" id="approved-total">—</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()">＋ 投資家を追加</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>投資家名</th>
+          <th>区分</th>
+          <th>出資可能額（万円）</th>
+          <th>関心領域</th>
+          <th>最終コンタクト日</th>
+          <th>ステータス</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <!-- モーダル -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h2 id="modal-title">投資家を追加</h2>
+
+      <div class="form-group">
+        <label>投資家名 <span class="required">*</span></label>
+        <input type="text" id="f-name" placeholder="例：山田太郎">
+        <div class="error-msg" id="e-name">投資家名を入力してください</div>
+      </div>
+
+      <div class="form-group">
+        <label>区分 <span class="required">*</span></label>
+        <select id="f-type">
+          <option value="">選択してください</option>
+          <option value="個人">個人</option>
+          <option value="法人">法人</option>
+        </select>
+        <div class="error-msg" id="e-type">区分を選択してください</div>
+      </div>
+
+      <div class="form-group">
+        <label>出資可能額（万円）<span class="required">*</span></label>
+        <input type="number" id="f-amount" placeholder="例：5000" min="1">
+        <div class="error-msg" id="e-amount">1以上の数値を入力してください</div>
+      </div>
+
+      <div class="form-group">
+        <label>関心領域</label>
+        <input type="text" id="f-interest" placeholder="例：アニメ・映像">
+      </div>
+
+      <div class="form-group">
+        <label>最終コンタクト日 <span class="required">*</span></label>
+        <input type="date" id="f-date">
+        <div class="error-msg" id="e-date">日付を入力してください</div>
+      </div>
+
+      <div class="form-group">
+        <label>ステータス <span class="required">*</span></label>
+        <select id="f-status">
+          <option value="">選択してください</option>
+          <option value="検討中">検討中</option>
+          <option value="承認済">承認済</option>
+          <option value="見送り">見送り</option>
+        </select>
+        <div class="error-msg" id="e-status">ステータスを選択してください</div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveInvestor()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "questry_investors";
+    const SEED = [
+      { name:"山田太郎",          type:"個人", amount:3000,  interest:"アニメ・映像",        date:"2026-03-15", status:"検討中" },
+      { name:"株式会社フロンティアキャピタル", type:"法人", amount:50000, interest:"アニメ・映像・IP",    date:"2026-04-01", status:"承認済" },
+      { name:"鈴木花子",          type:"個人", amount:1000,  interest:"映像・ドラマ",         date:"2026-02-20", status:"見送り" },
+      { name:"合同会社クリエイトベンチャーズ", type:"法人", amount:20000, interest:"アニメ・ゲーム・IP", date:"2026-04-10", status:"検討中" },
+      { name:"田中誠一",          type:"個人", amount:5000,  interest:"映像・配信コンテンツ",  date:"2026-03-28", status:"承認済" },
+    ];
+
+    let editIndex = null; // null=追加モード、数値=編集モード
+
+    /* ---------- データ ---------- */
+    function load() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : SEED.map((s, i) => ({ ...s, id: i }));
+    }
+
+    function save(investors) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(investors));
+    }
+
+    /* ---------- 描画 ---------- */
+    function statusBadge(status) {
+      const map = { "承認済": "badge-approved", "検討中": "badge-pending", "見送り": "badge-declined" };
+      return `<span class="badge ${map[status] || "badge-declined"}">${status}</span>`;
+    }
+
+    function render() {
+      const investors = load();
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = "";
+
+      investors.forEach((inv, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escHtml(inv.name)}</td>
+          <td><span class="type-badge">${escHtml(inv.type)}</span></td>
+          <td class="amount">${Number(inv.amount).toLocaleString()}</td>
+          <td>${escHtml(inv.interest || "—")}</td>
+          <td>${escHtml(inv.date)}</td>
+          <td>${statusBadge(inv.status)}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-edit" onclick="openModal(${idx})">編集</button>
+              <button class="btn btn-delete" onclick="deleteInvestor(${idx})">削除</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("total-count").textContent = investors.length + "名";
+      const approved = investors.filter(i => i.status === "承認済");
+      document.getElementById("approved-count").textContent = approved.length + "名";
+      const total = approved.reduce((s, i) => s + Number(i.amount), 0);
+      document.getElementById("approved-total").textContent = total.toLocaleString() + " 万円";
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    /* ---------- モーダル ---------- */
+    function openModal(idx = null) {
+      editIndex = idx;
+      clearErrors();
+      document.getElementById("modal-title").textContent = idx === null ? "投資家を追加" : "投資家を編集";
+
+      if (idx !== null) {
+        const inv = load()[idx];
+        document.getElementById("f-name").value     = inv.name;
+        document.getElementById("f-type").value     = inv.type;
+        document.getElementById("f-amount").value   = inv.amount;
+        document.getElementById("f-interest").value = inv.interest || "";
+        document.getElementById("f-date").value     = inv.date;
+        document.getElementById("f-status").value   = inv.status;
+      } else {
+        ["f-name","f-type","f-amount","f-interest","f-date","f-status"]
+          .forEach(id => document.getElementById(id).value = "");
+      }
+
+      document.getElementById("modal-overlay").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modal-overlay").classList.remove("open");
+      editIndex = null;
+    }
+
+    /* ---------- バリデーション ---------- */
+    function clearErrors() {
+      ["name","type","amount","date","status"].forEach(f => {
+        document.getElementById(`f-${f}`).classList.remove("error");
+        document.getElementById(`e-${f}`).classList.remove("show");
+      });
+    }
+
+    function validate() {
+      clearErrors();
+      let ok = true;
+      const checks = [
+        { id: "name",   test: v => v.trim() !== "" },
+        { id: "type",   test: v => v !== "" },
+        { id: "amount", test: v => v !== "" && Number(v) >= 1 },
+        { id: "date",   test: v => v !== "" },
+        { id: "status", test: v => v !== "" },
+      ];
+      checks.forEach(({ id, test }) => {
+        const el = document.getElementById(`f-${id}`);
+        if (!test(el.value)) {
+          el.classList.add("error");
+          document.getElementById(`e-${id}`).classList.add("show");
+          ok = false;
+        }
+      });
+      return ok;
+    }
+
+    /* ---------- 保存・削除 ---------- */
+    function saveInvestor() {
+      if (!validate()) return;
+
+      const investors = load();
+      const entry = {
+        id:       editIndex !== null ? investors[editIndex].id : Date.now(),
+        name:     document.getElementById("f-name").value.trim(),
+        type:     document.getElementById("f-type").value,
+        amount:   Number(document.getElementById("f-amount").value),
+        interest: document.getElementById("f-interest").value.trim(),
+        date:     document.getElementById("f-date").value,
+        status:   document.getElementById("f-status").value,
+      };
+
+      if (editIndex !== null) {
+        investors[editIndex] = entry;
+      } else {
+        investors.push(entry);
+      }
+
+      save(investors);
+      closeModal();
+      render();
+    }
+
+    function deleteInvestor(idx) {
+      const investors = load();
+      const name = investors[idx].name;
+      if (!confirm(`「${name}」を削除してよろしいですか？`)) return;
+      investors.splice(idx, 1);
+      save(investors);
+      render();
+    }
+
+    // モーダル外クリックで閉じる
+    document.getElementById("modal-overlay").addEventListener("click", function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    render();
+  </script>
+
+</body>
+</html>

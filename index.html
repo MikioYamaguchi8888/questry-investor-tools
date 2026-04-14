@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questry — 内部ポータル</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background: #f5f6fa;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ナビ */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #1a1a2e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .logo-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #1a1a2e;
+      letter-spacing: 0.06em;
+    }
+
+    .logo-tag {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    .nav-meta {
+      font-size: 0.78rem;
+      color: #888;
+    }
+
+    /* ヒーロー */
+    .hero {
+      padding: 64px 48px 48px;
+      max-width: 860px;
+    }
+
+    .hero .eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #3949ab;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.2;
+      color: #1a1a2e;
+      margin-bottom: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 0.95rem;
+      color: #888;
+      line-height: 1.75;
+      max-width: 540px;
+    }
+
+    /* ツールグリッド */
+    .section {
+      padding: 0 48px 64px;
+      flex: 1;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .tool-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 24px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .tool-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .tool-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+
+    .icon-investors { background: #e8eaf6; }
+    .icon-fund      { background: #e0f7fa; }
+    .icon-irr       { background: #e8f5e9; }
+
+    .tool-body { flex: 1; }
+
+    .tool-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 7px;
+    }
+
+    .tool-desc {
+      font-size: 0.82rem;
+      color: #888;
+      line-height: 1.65;
+    }
+
+    .tool-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .tool-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .tag-investors { background: #e8eaf6; color: #3949ab; }
+    .tag-fund      { background: #e0f7fa; color: #00838f; }
+    .tag-irr       { background: #e8f5e9; color: #2e7d32; }
+
+    .arrow {
+      font-size: 0.95rem;
+      color: #bbb;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .tool-card:hover .arrow {
+      color: #3949ab;
+      transform: translateX(4px);
+    }
+
+    /* フッター */
+    footer {
+      padding: 20px 48px;
+      border-top: 1px solid #e8e8e8;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    footer p {
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+
+    .footer-badge {
+      font-size: 0.72rem;
+      color: #888;
+      background: #f5f6fa;
+      border: 1px solid #e8e8e8;
+      padding: 4px 12px;
+      border-radius: 99px;
+    }
+
+    @media (max-width: 860px) {
+      nav, .hero, .section, footer { padding-left: 20px; padding-right: 20px; }
+      .hero h1 { font-size: 1.7rem; }
+      .tools { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">
+      <div class="logo-mark">Q</div>
+      <div>
+        <div class="logo-name">QUESTRY</div>
+        <div class="logo-tag">Content Finance</div>
+      </div>
+    </div>
+    <div class="nav-meta" id="nav-date"></div>
+  </nav>
+
+  <div class="hero">
+    <div class="eyebrow">Internal Portal</div>
+    <h1>コンテンツを、<br>アセットクラスへ。</h1>
+    <p>TKスキーム・LPSスキームによるファンド組成から投資家管理・レポーティングまで、Questryの業務を一元管理する内部ポータルです。</p>
+  </div>
+
+  <div class="section">
+    <div class="section-label">ツール一覧</div>
+    <div class="tools">
+
+      <a class="tool-card" href="investor_list.html">
+        <div class="tool-icon icon-investors">👥</div>
+        <div class="tool-body">
+          <div class="tool-name">投資家管理</div>
+          <div class="tool-desc">投資家情報の一覧・追加・編集を行います。ステータス別の集計や出資可能額の確認が可能です。</div>
+        </div>
+        <div class="tool-footer">
+          <span class="tool-tag tag-investors">Investor CRM</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a class="tool-card" href="fund_dashboard.html">
+        <div class="tool-icon icon-fund">📊</div>
+        <div class="tool-body">
+          <div class="tool-name">ファンドダッシュボード</div>
+          <div class="tool-desc">TKスキーム案件の調達進捗・投資家別出資比率・IRR目標をビジュアルで確認します。</div>
+        </div>
+        <div class="tool-footer">
+          <span class="tool-tag tag-fund">Fund Management</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a class="tool-card" href="irr_simulator.html">
+        <div class="tool-icon icon-irr">📈</div>
+        <div class="tool-body">
+          <div class="tool-name">IRRシミュレーター</div>
+          <div class="tool-desc">出資額・配当率・投資期間・元本回収率を入力し、IRR・総リターン・年別キャッシュフローをシミュレーションします。</div>
+        </div>
+        <div class="tool-footer">
+          <span class="tool-tag tag-irr">IRR Simulator</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2026 Questry Inc. — Confidential. Internal use only.</p>
+    <span class="footer-badge">CSO: 山口幹生</span>
+  </footer>
+
+  <script>
+    const d = new Date();
+    document.getElementById("nav-date").textContent =
+      `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  </script>
+
+</body>
+</html>
